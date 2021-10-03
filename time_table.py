@@ -11,193 +11,193 @@ from openpyxl.styles import Border, Side, Alignment
 pd.set_option('display.max_rows', 8)
 
 # list/dictionaries
-sl = []
-pl = ['TP4','TP5','TP6','TP7']
-#pl = ['HP4','HP5','HP6','HP7']
-ld = {}
-tsd = {}
-std = {}
-fcsd = {}
-sfcd = {}
+subject_list = []
+period_list = ['TP4', 'TP5', 'TP6', 'TP7']
+#period_list = ['HP4','HP5','HP6','HP7']
+lesson_lookup = {}
+teacher_subject = {}
+subject_teacher = {}
+faculty_subject = {}
+subject_faculty = {}
 
 # read in data frames
-tf = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/teachers.csv',index_col='initials')
-smtf = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/smt.csv',index_col='initials')
-ttf = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/tea.csv',index_col='initials')
-stf = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/subj.csv',index_col='Subject Code')
-rtf = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/room.csv',index_col='room')
+teacher = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/teachers.csv', index_col='initials')
+SMT = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/smt.csv', index_col='initials')
+teacher_timetable = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/tea.csv', index_col='initials')
+subject = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/subj.csv', index_col='Subject Code')
+room_timetable = pd.read_csv('C:/Users/sarah/PycharmProjects/portfolio/timetable/room.csv', index_col='room')
 
-def lesson_dic(l):
-    c = str(l).split("\n")[0]  # class info without room or teacher (LAC/Cs or 11M/Ma5)
+def lesson_dic(lesson_info):
+    class_info = str(lesson_info).split("\n")[0]  # class info without room or teacher (LAC/Cs or 11M/Ma5)
 
-    if len(c.split('/')) == 2:  # Check class info can be split
+    if len(class_info.split('/')) == 2:  # Check class info can be split
 
         # input and output yrs
-        yli = ['5', '6', '7', '8', '9', '10', '11', 'L', 'U']
-        ylo = ['5', '6', '7', '8', '9', '10', '11', '12', '13']
+        yr_input = ['5', '6', '7', '8', '9', '10', '11', 'L', 'U']
+        yr_output = ['5', '6', '7', '8', '9', '10', '11', '12', '13']
 
-        for i, y in enumerate(yli):
-            if c.find(y) == 0:
-                yr = ylo[i]
+        for i, yr in enumerate(yr_input):
+            if class_info.find(yr) == 0:
+                yr = yr_output[i]
 
                 # Add lesson to dictionary
-                s = c.split('/')[1]
-                ld[l] = [yr, s[:2]]
+                subject = class_info.split('/')[1]
+                lesson_lookup[lesson_info] = [yr, subject[:2]]
 
                 # Add set if applicable
-                if len(s) == 3:
-                    ld[l].append(f'Set {s[2]}')
+                if len(subject) == 3:
+                    lesson_lookup[lesson_info].append(f'Set {subject[2]}')
                 break
 
 
 # Teacher timetable remove unnecessary periods and Games and create lesson dictionary
-for p in list(ttf):
-    if p not in pl:
-        ttf.drop(p, axis=1, inplace=True)
+for period in list(teacher_timetable):
+    if period not in period_list:
+        teacher_timetable.drop(period, axis=1, inplace=True)
 
     # Remove Games and make lesson dictionary for export
     else:
-        for t in ttf.index.values:
-            l = ttf.at[t,p]
-            c = str(l).split("\n")[0] # class info without room (LAC/Cs or 11M/Ma5)
+        for initials in teacher_timetable.index.values:
+            lesson_info = teacher_timetable.at[initials, period]
+            class_info = str(lesson_info).split("\n")[0] # class info without room (LAC/Cs or 11M/Ma5)
 
-            if 'Games' in c: # Remove Games and Off Games
-                ttf.at[t,p]= np.NaN
-            elif 'Meeting' in c: # Remove Games and Off Games
-                ttf.at[t,p]= np.NaN
-            elif 'Part Time' in c: # Remove Games and Off Games
-                ttf.at[t,p]= np.NaN
+            if 'Games' in class_info: # Remove Games and Off Games
+                teacher_timetable.at[initials, period]= np.NaN
+            elif 'Meeting' in class_info: # Remove Games and Off Games
+                teacher_timetable.at[initials, period]= np.NaN
+            elif 'Part Time' in class_info: # Remove Games and Off Games
+                teacher_timetable.at[initials, period]= np.NaN
 
-            lesson_dic(l)
+            lesson_dic(lesson_info)
 
-            if l not in ld.keys(): # final check for annomalies in data
-                ttf.at[t, p] = np.NaN
+            if lesson_info not in lesson_lookup.keys(): # final check for annomalies in data
+                teacher_timetable.at[initials, period] = np.NaN
 
 # create list of teachers for cover
-for t in tf.index.values:
-    if t not in smtf.index.values:
-        sl.append(t)
+for initials in teacher.index.values:
+    if initials not in SMT.index.values:
+        subject_list.append(initials)
 
 # create dictionary teachers name to subjects taught
-for t in ttf.index.values: # Add all teachers first
-    tsd[t]=[]
+for initials in teacher_timetable.index.values: # Add all teachers first
+    teacher_subject[initials]=[]
 
-for s in stf.index.values:
-    if s not in ['Ga', 'Tk', 'Ps','Ls']:
-        std[s] = []
-        for t in list(stf)[3:]:
+for subject_abr in subject.index.values:
+    if subject_abr not in ['Ga', 'Tk', 'Ps', 'Ls']:
+        subject_teacher[subject_abr] = []
+        for initials in list(subject)[3:]:
 
-            itl = stf.at[s, t]
+            staff_initials = subject.at[subject_abr, initials]
 
-            if itl is not np.NaN and pd.notna(itl): # remove na
-                if str(itl).find(', ') == -1:  # check for multiple entries (applicable in HoDs column)
-                    if itl in tsd.keys() and s not in tsd[itl]:
-                        tsd[itl].append(s)
-                    if itl not in std[s]:
-                        std[s].append(itl)
+            if staff_initials is not np.NaN and pd.notna(staff_initials): # remove na
+                if str(staff_initials).find(', ') == -1:  # check for multiple entries (applicable in HoDs column)
+                    if staff_initials in teacher_subject.keys() and subject_abr not in teacher_subject[staff_initials]:
+                        teacher_subject[staff_initials].append(subject_abr)
+                    if staff_initials not in subject_teacher[subject_abr]:
+                        subject_teacher[subject_abr].append(staff_initials)
                 else:
-                    for i in itl.split(', '):
-                        if i in tsd.keys() and s not in tsd[i]:
-                            tsd[i].append(s)
+                    for i in staff_initials.split(', '):
+                        if i in teacher_subject.keys() and subject_abr not in teacher_subject[i]:
+                            teacher_subject[i].append(subject_abr)
 
 # Reverse each list as HoDs need to be last to be picked
-for itl in std.keys():
-    std[itl].reverse()
+for staff_initials in subject_teacher.keys():
+    subject_teacher[staff_initials].reverse()
 
 # Room timetable remove periods and games
-for p in list(rtf):
-    if p not in pl:
-        rtf.drop(p, axis=1, inplace=True)
+for period in list(room_timetable):
+    if period not in period_list:
+        room_timetable.drop(period, axis=1, inplace=True)
     else:
-        for t in rtf.index.values:
-            l = rtf.at[t, p]
-            c = str(l).split("\n")[0]  # class info without room (LAC/Cs or 11M/Ma5)
+        for initials in room_timetable.index.values:
+            lesson_info = room_timetable.at[initials, period]
+            class_info = str(lesson_info).split("\n")[0]  # class info without room (LAC/Cs or 11M/Ma5)
 
-            if 'Games' in c:  # Remove Games and Off Games
-                rtf.at[t, p] = 'NaN'
+            if 'Games' in class_info:  # Remove Games and Off Games
+                room_timetable.at[initials, period] = 'NaN'
 
-            lesson_dic(l)
+            lesson_dic(lesson_info)
 
-            if l not in ld.keys(): # final check for annomalies in data
-                rtf.at[t, p] = np.NaN
+            if lesson_info not in lesson_lookup.keys(): # final check for annomalies in data
+                room_timetable.at[initials, period] = np.NaN
 
 
 # Define faculties to subject dictionaries
-fcsd["Languages"] = ["EnL", "En", "Sp", "Fr", "Gm", "Gr", "In", "La", "Ru", "Cl", "La", "Ja", "Cn"]
-fcsd["Business/Economics"] = ["Ec", "Bs", "Bm", "BsB"]
-fcsd["Philosophy/Psychology"] = ["Py", "Pp", "Po", "So", "Ps", "Tk", "Dp"]
-fcsd["Geography/History"] = ["Hi", "Gg", "Gp"]
-fcsd["Science/Maths"] = ["Ma", "Ph", "Ch", "Bi", "Dt", "As", "Cs", "IT", "Sc"]
-fcsd["Arts"]=["Ar", "Dr", "Mu"]
+faculty_subject["Languages"] = ["EnL", "En", "Sp", "Fr", "Gm", "Gr", "In", "La", "Ru", "Cl", "La", "Ja", "Cn"]
+faculty_subject["Business/Economics"] = ["Ec", "Bs", "Bm", "BsB"]
+faculty_subject["Philosophy/Psychology"] = ["Py", "Pp", "Po", "So", "Ps", "Tk", "Dp"]
+faculty_subject["Geography/History"] = ["Hi", "Gg", "Gp"]
+faculty_subject["Science/Maths"] = ["Ma", "Ph", "Ch", "Bi", "Dt", "As", "Cs", "IT", "Sc"]
+faculty_subject["Arts"]=["Ar", "Dr", "Mu"]
 
-for f in fcsd.keys():
-    for s in fcsd[f]:
-        if s not in sfcd.keys():
-            sfcd[s]=f
+for faculty in faculty_subject.keys():
+    for subject_abr in faculty_subject[faculty]:
+        if subject_abr not in subject_faculty.keys():
+            subject_faculty[subject_abr]=faculty
 
 # free teachers/room for a period of interest, period: 0 = 4/6, 1 = 5/7
-def free(tf,p):
-    fl = []
-    cl = []
-    for r in tf.index.values:
-        fst = tf.at[r,pl[p]]
-        snd = tf.at[r,pl[p+2]]
-        if fst is np.NaN and snd is np.NaN:
-            fl.append(r)
-        elif fst is not np.NaN and snd is not np.NaN:
+def free(teacher, period):
+    free = []
+    clash = []
+    for teacher_initials in teacher.index.values:
+        first_lesson = teacher.at[teacher_initials, period_list[period]]
+        second_lesson = teacher.at[teacher_initials, period_list[period + 2]]
+        if first_lesson is np.NaN and second_lesson is np.NaN:
+            free.append(teacher_initials)
+        elif first_lesson is not np.NaN and second_lesson is not np.NaN:
 
-            cl.append([r,fst,snd])
-    return(fl,cl)
-
-
-# return both free and clashing teachers and staff across both pairs of periods
-ft0l, ct0l = free(ttf,0)
-fr0l, cr0l = free(rtf,0)
-ft1l, ct1l = free(ttf,1)
-fr1l, cr1l = free(rtf,1)
+            clash.append([teacher_initials,first_lesson,second_lesson])
+    return(free,clash)
 
 
-def teacher_collapse(fl,cl):
-    res = {}
-    for r in cl:
-        t = r[0]
-        fst = r[1] # stay and cover
-        snd = r[2]  # move with teacher
+# return both free and clashing teachers and staff across both pairs of periods, named 0 and 1
+free_teacher_0, clash_teacher_0 = free(teacher_timetable, 0)
+free_room_0, clash_room_0 = free(room_timetable, 0)
+free_teacher_1, clash_teacher_1 = free(teacher_timetable, 1)
+free_room_1, clash_room_1 = free(room_timetable, 1)
 
-        s = ld[fst][1]
 
-        for ct in std[s]: # for pot cover teacher within subject teachers
-            if ct in fl: # if the teacher is free
-                res[t]=[ct,fst,snd] # assign cover
-                fl.remove(ct)
+def teacher_collapse(free, clash):
+    resolution = {}
+    for clash_info in clash:
+        teacher = clash_info[0]
+        first_lesson = clash_info[1] # stay and cover
+        second_lesson = clash_info[2]  # move with teacher
+
+        subject = lesson_lookup[first_lesson][1]
+
+        for cover_teacher in subject_teacher[subject]: # for pot cover teacher within subject teachers
+            if cover_teacher in free: # if the teacher is free
+                resolution[teacher]=[cover_teacher,first_lesson,second_lesson] # assign cover
+                free.remove(cover_teacher)
                 break
-    return res, fl
+    return resolution, free
 
 
-def room_collapse(fl,cl):
-    res = {}
-    for l in cl:
-        r = l[0]
-        fst = l[1] # stay and cover
-        snd = l[2]  # move with teacher
+def room_collapse(free, clash):
+    resolution = {}
+    for clash_info in clash:
+        room = clash_info[0]
+        first_lesson = clash_info[1] # stay and cover
+        second_lesson = clash_info[2]  # move with teacher
 
-        res[r]=[fl[0],fst,snd]
-        fl.remove(fl[0])
+        resolution[room]=[free[0], first_lesson, second_lesson]
+        free.remove(free[0])
 
-    return res, fl
+    return resolution, free
 
 
-rest0, ft0 = teacher_collapse(ft0l,ct0l)
-rest1, ft1 = teacher_collapse(ft1l,ct1l)
-resr0, fr0 = room_collapse(fr0l,cr0l)
-resr1, fr1 = room_collapse(fr1l,cr1l)
+teacher_res_0, teacher_free_0 = teacher_collapse(free_teacher_0, clash_teacher_0)
+teacher_res_1, teacher_free_1 = teacher_collapse(free_teacher_1, clash_teacher_1)
+room_res_0, room_free_0 = room_collapse(free_room_0, clash_room_0)
+room_res_1, room_free_1 = room_collapse(free_room_1, clash_room_1)
 
 # Export
 wb = Workbook()
 file = 'C:/Users/sarah/PycharmProjects/portfolio/timetable/tt_collapse.xlsx'
 wb.save(file)
 
-def exp_t(file, title, period,res,f):
+def exp_t(file, title, period, res, free):
     wb = load_workbook(file)
     ws = wb.create_sheet(title)
     ws.sheet_view.showGridLines = False
@@ -221,23 +221,23 @@ def exp_t(file, title, period,res,f):
     ws.cell(2, 8).value = "Free Teachers"
     ws.column_dimensions["H"].width = 10
 
-    for r,t in enumerate(res.keys()):
-        fstl = ld[res[t][1]]
-        fstrm = res[t][1].split('\n')
-        if len(fstrm) == 2:
-            fstrm = fstrm[1]
+    for r,teacher in enumerate(res.keys()):
+        first_lesson = lesson_lookup[res[teacher][1]]
+        first_room = res[teacher][1].split('\n')
+        if len(first_room) == 2:
+            first_room = first_room[1]
         else:
-            fstrm = 'TBC'
-        sndl = ld[res[t][2]]
+            first_room = 'TBC'
+        second_lesson = lesson_lookup[res[teacher][2]]
 
-        ws.cell(3+r,2).value = t
-        ws.cell(3+r,3).value = f'Yr{fstl[0]} - {fstl[1]}'
-        ws.cell(3 + r,4).value = f'Yr{sndl[0]} - {sndl[1]}'
-        ws.cell(3 + r, 5).value = f'Yr{sndl[0]} - {sndl[1]} to be covered in {fstrm}'
-        ws.cell(3 + r, 6).value = res[t][0]
+        ws.cell(3+r,2).value = teacher
+        ws.cell(3+r,3).value = f'Yr{first_lesson[0]} - {first_lesson[1]}'
+        ws.cell(3 + r,4).value = f'Yr{second_lesson[0]} - {second_lesson[1]}'
+        ws.cell(3 + r, 5).value = f'Yr{second_lesson[0]} - {second_lesson[1]} to be covered in {first_room}'
+        ws.cell(3 + r, 6).value = res[teacher][0]
 
-    for r,t in enumerate(f):
-        ws.cell(3+r, 8).value = t
+    for r,teacher in enumerate(free):
+        ws.cell(3+r, 8).value = teacher
 
     for row in ws.iter_rows():
         for cell in row:
@@ -250,10 +250,10 @@ def exp_t(file, title, period,res,f):
     wb.save(file)
 
 
-exp_t(file, 'Teacher 4-6', 4,rest0,ft0)
-exp_t(file, 'Teacher 5-7', 5,rest1,ft1)
+exp_t(file, 'Teacher 4-6', 4, teacher_res_0, teacher_free_0)
+exp_t(file, 'Teacher 5-7', 5, teacher_res_1, teacher_free_1)
 
-def exp_r(file, title, period,res,f):
+def exp_r(file, title, period, res, free):
     wb = load_workbook(file)
     ws = wb.create_sheet(title)
     ws.sheet_view.showGridLines = False
@@ -277,19 +277,19 @@ def exp_r(file, title, period,res,f):
     ws.cell(2, 8).value = "Free Room"
     ws.column_dimensions["H"].width = 10
 
-    for r,t in enumerate(res.keys()):
-        fstl = ld[res[t][1]]
-        fstt = res[t][1].split('\n')[1]
-        sndl = ld[res[t][2]]
+    for r,teacher in enumerate(res.keys()):
+        first_lesson = lesson_lookup[res[teacher][1]]
+        first_teacher = res[teacher][1].split('\n')[1]
+        second_lesson = lesson_lookup[res[teacher][2]]
 
-        ws.cell(3+r,2).value = t
-        ws.cell(3+r,3).value = f'Yr{fstl[0]} - {fstl[1]}'
-        ws.cell(3 + r,4).value = f'Yr{sndl[0]} - {sndl[1]}'
-        ws.cell(3 + r, 5).value = f'Yr{fstl[0]} - {fstl[1]} with {fstt} to move rooms'
-        ws.cell(3 + r, 6).value = res[t][0]
+        ws.cell(3+r,2).value = teacher
+        ws.cell(3+r,3).value = f'Yr{first_lesson[0]} - {first_lesson[1]}'
+        ws.cell(3 + r,4).value = f'Yr{second_lesson[0]} - {second_lesson[1]}'
+        ws.cell(3 + r, 5).value = f'Yr{first_lesson[0]} - {first_lesson[1]} with {first_teacher} to move rooms'
+        ws.cell(3 + r, 6).value = res[teacher][0]
 
-    for r,t in enumerate(f):
-        ws.cell(3+r, 8).value = t
+    for r,teacher in enumerate(free):
+        ws.cell(3+r, 8).value = teacher
 
     for row in ws.iter_rows():
         for cell in row:
@@ -302,8 +302,8 @@ def exp_r(file, title, period,res,f):
     wb.save(file)
 
 
-exp_r(file, 'Room 4-6', 4,resr0,fr0)
-exp_r(file, 'Room 5-7', 5,resr1,fr1)
+exp_r(file, 'Room 4-6', 4, room_res_0, room_free_0)
+exp_r(file, 'Room 5-7', 5, room_res_1, room_free_1)
 
 wb = load_workbook(file)
 ws = wb["Sheet"]
